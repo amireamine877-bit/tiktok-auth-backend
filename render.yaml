@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: meta-mvp-backend
+    env: node
+    plan: free
+    buildCommand: "npm install"
+    startCommand: "node server.js"
+    autoDeploy: true
+    envVars:
+      - key: PORT
+        value: 8000

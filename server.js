@@ -1,4 +1,3 @@
-// backend/server.js
 import express from 'express';
 import dotenv from 'dotenv';
 
@@ -17,6 +16,7 @@ app.get('/api/auth/login/tiktok', (req, res) => {
 /**
  * ===== TikTok Login =====
  * هذا المسار هو الذي تبدأ منه تسجيل الدخول
+ * افتحه في المتصفح
  */
 app.get('/auth/tiktok', (req, res) => {
   const authUrl =
@@ -33,26 +33,39 @@ app.get('/auth/tiktok', (req, res) => {
 
 /**
  * ===== TikTok Callback =====
- * ⚠️ هذا هو المسار الذي يجب أن يطابق TikTok Dashboard حرفيًا
+ * ⚠️ يجب أن يطابق TikTok Dashboard حرفيًا
+ * مثال:
  * https://tiktok-auth-backend-1.onrender.com/api/auth/callback
  */
 app.get('/api/auth/callback', (req, res) => {
-  const { code, state, error } = req.query;
+  const { code, state, error, error_description } = req.query;
 
+  console.log('🔁 TikTok callback hit');
+
+  // في حالة وجود خطأ من TikTok
   if (error) {
-    console.error('❌ TikTok error:', error);
-    return res.status(400).send(`TikTok error: ${error}`);
+    console.error('❌ TikTok error:', error, error_description);
+    return res.status(400).json({
+      success: false,
+      error,
+      description: error_description,
+    });
   }
 
+  // في حالة عدم وصول code
   if (!code) {
+    console.error('❌ No authorization code received');
     return res.status(400).send('No authorization code received from TikTok');
   }
 
+  // نجاح
   console.log('✅ TikTok authorization code received:', code);
+  console.log('State:', state);
 
-  // حاليا نرجع code فقط للتأكد أن كل شيء يعمل
-  // لاحقًا سنبدله بـ access_token
+  // حاليًا نرجع code فقط للتأكد أن كل شيء يعمل
+  // الخطوة القادمة: استبداله بـ access_token
   res.json({
+    success: true,
     message: 'TikTok login successful',
     code,
     state,

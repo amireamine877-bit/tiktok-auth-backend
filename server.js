@@ -1,54 +1,37 @@
 import express from "express";
 import dotenv from "dotenv";
 import fetch from "node-fetch";
-import crypto from "crypto";
 
 dotenv.config();
-
 const app = express();
 
-// ================= PKCE =================
-function base64URLEncode(buffer) {
-  return buffer
-    .toString("base64")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
-}
-
-function sha256(buffer) {
-  return crypto.createHash("sha256").update(buffer).digest();
-}
-
-const codeVerifier = base64URLEncode(crypto.randomBytes(32));
-const codeChallenge = base64URLEncode(sha256(codeVerifier));
-
-// ================= STEP 1 =================
+/**
+ * 1️⃣ Start TikTok login
+ */
 app.get("/auth/tiktok", (req, res) => {
-  const authUrl =
+  const url =
     "https://www.tiktok.com/v2/auth/authorize" +
     `?client_key=${process.env.CLIENT_KEY}` +
-    `&response_type=code` +
-    `&scope=user.info.basic` +
+    "&response_type=code" +
+    "&scope=user.info.basic" +
     `&redirect_uri=${encodeURIComponent(process.env.REDIRECT_URI)}` +
-    `&state=meta-mvp` +
-    `&code_challenge=${codeChallenge}` +
-    `&code_challenge_method=S256`;
+    "&state=meta-mvp";
 
-  console.log("➡ Redirecting to TikTok with PKCE");
-  res.redirect(authUrl);
+  console.log("➡ Redirecting to TikTok");
+  res.redirect(url);
 });
 
-// ================= STEP 2 =================
+/**
+ * 2️⃣ Callback – exchange code for access_token
+ */
 app.get("/api/auth/callback", async (req, res) => {
   const { code, state } = req.query;
 
   if (!code) {
-    return res.status(400).json({ error: "No authorization code received" });
+    return res.status(400).json({ error: "No code received" });
   }
 
   console.log("✅ TikTok authorization code received:", code);
-  console.log("State:", state);
 
   try {
     const tokenRes = await fetch(
@@ -62,28 +45,22 @@ app.get("/api/auth/callback", async (req, res) => {
           code,
           grant_type: "authorization_code",
           redirect_uri: process.env.REDIRECT_URI,
-          code_verifier: codeVerifier,
         }),
       }
     );
 
     const tokenData = await tokenRes.json();
 
-    return res.json({
-      success: true,
-      access_token: tokenData.access_token,
-      refresh_token: tokenData.refresh_token,
-      expires_in: tokenData.expires_in,
-      open_id: tokenData.open_id,
-      scope: tokenData.scope,
-    });
+    console.log("🎯 ACCESS TOKEN RESPONSE:", tokenData);
+
+    // 🔥 هذا هو المهم
+    res.json(tokenData);
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: "Token exchange failed" });
   }
 });
 
-// ================= START =================
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+app.listen(3000, () => {
+  console.log("🚀 Server running on port 3000");
 });

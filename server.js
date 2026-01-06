@@ -6,10 +6,24 @@ import { URLSearchParams } from "url";
 dotenv.config();
 const app = express();
 
-// ✅ خدمة الملفات الثابتة (public folder)
+/**
+ * ✅ TikTok URL PREFIX VERIFICATION (ROUTE DIRECT – لا يفشل)
+ * هذا ضروري حتى لو كنت تستعمل express.static
+ */
+app.get("/tiktokVGFShtzVAew5HC35lRgIi2hgG0MHEvK5.txt", (req, res) => {
+  res.status(200);
+  res.set("Content-Type", "text/plain");
+  res.send("tiktokVGFShtzVAew5HC35lRgIi2hgG0MHEvK5");
+});
+
+/**
+ * ✅ خدمة الملفات الثابتة (اختياري – لا نعتمد عليها للتحقق)
+ */
 app.use(express.static("public"));
 
-// 1️⃣ بدء تسجيل الدخول إلى TikTok
+/**
+ * 1️⃣ بدء تسجيل الدخول إلى TikTok
+ */
 app.get("/auth/tiktok", (req, res) => {
   const url =
     "https://www.tiktok.com/v2/auth/authorize" +
@@ -23,7 +37,9 @@ app.get("/auth/tiktok", (req, res) => {
   res.redirect(url);
 });
 
-// 2️⃣ Callback – استبدال رمز الوصول بـ access token
+/**
+ * 2️⃣ Callback – استبدال authorization code بـ access_token
+ */
 app.get("/api/auth/callback", async (req, res) => {
   const { code, state } = req.query;
 
@@ -47,7 +63,9 @@ app.get("/api/auth/callback", async (req, res) => {
       "https://open.tiktokapis.com/v2/oauth/token/",
       {
         method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
         body: params.toString(),
       }
     );
@@ -60,8 +78,10 @@ app.get("/api/auth/callback", async (req, res) => {
   }
 });
 
-// ✅ بدء السيرفر
+/**
+ * ✅ تشغيل السيرفر
+ */
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () =>
-  console.log(`🚀 Server running on port ${PORT}`)
-);
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+});
